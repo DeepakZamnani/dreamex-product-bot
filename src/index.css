@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* DreamExProp specific styles with rt- prefix to avoid conflicts */
+@layer utilities {
+  .rt-inline-flex { @apply inline-flex; }
+  .rt-items-center { @apply items-center; }
+  .rt-justify-center { @apply justify-center; }
+  .rt-font-medium { @apply font-medium; }
+  .rt-rounded-lg { @apply rounded-lg; }
+  .rt-transition-all { @apply transition-all; }
+  .rt-duration-200 { @apply duration-200; }
+  .rt-outline-none { @apply outline-none; }
+  .rt-ring-2 { @apply ring-2; }
+  .rt-ring-offset-2 { @apply ring-offset-2; }
+  .rt-bg-emerald-600 { @apply bg-emerald-600; }
+  .rt-bg-emerald-700 { @apply bg-emerald-700; }
+  .rt-text-white { @apply text-white; }
+  .rt-ring-emerald-500 { @apply ring-emerald-500; }
+  .rt-bg-gray-300 { @apply bg-gray-300; }
+  .rt-bg-blue-600 { @apply bg-blue-600; }
+  .rt-bg-blue-700 { @apply bg-blue-700; }
+  .rt-ring-blue-500 { @apply ring-blue-500; }
+  .rt-border { @apply border; }
+  .rt-border-gray-300 { @apply border-gray-300; }
+  .rt-bg-white { @apply bg-white; }
+  .rt-bg-gray-50 { @apply bg-gray-50; }
+  .rt-text-gray-700 { @apply text-gray-700; }
+  .rt-bg-gray-100 { @apply bg-gray-100; }
+  .rt-px-3 { @apply px-3; }
+  .rt-py-2 { @apply py-2; }
+  .rt-text-sm { @apply text-sm; }
+  .rt-px-4 { @apply px-4; }
+  .rt-px-6 { @apply px-6; }
+  .rt-py-3 { @apply py-3; }
+  .rt-text-base { @apply text-base; }
+  .rt-rounded-xl { @apply rounded-xl; }
+  .rt-shadow-sm { @apply shadow-sm; }
+  .rt-border-gray-100 { @apply border-gray-100; }
+  .rt-shadow-md { @apply shadow-md; }
+  .rt-transition-shadow { @apply transition-shadow; }
+  .rt-sticky { @apply sticky; }
+  .rt-top-0 { @apply top-0; }
+  .rt-z-50 { @apply z-50; }
+  .rt-max-w-7xl { @apply max-w-7xl; }
+  .rt-mx-auto { @apply mx-auto; }
+  .rt-px-4 { @apply px-4; }
+  .rt-px-6 { @apply px-6; }
+  .rt-px-8 { @apply px-8; }
+  .rt-flex { @apply flex; }
+  .rt-justify-between { @apply justify-between; }
+  .rt-h-16 { @apply h-16; }
+  .rt-space-x-2 { @apply space-x-2; }
+  .rt-p-2 { @apply p-2; }
+  .rt-h-6 { @apply h-6; }
+  .rt-w-6 { @apply w-6; }
+  .rt-text-xl { @apply text-xl; }
+  .rt-font-bold { @apply font-bold; }
+  .rt-text-gray-900 { @apply text-gray-900; }
+  .rt-text-gray-800 { color: #383938; }
+  .rt-hidden { @apply hidden; }
+  .rt-space-x-8 { @apply space-x-8; }
+  .rt-space-x-1 { @apply space-x-1; }
+  .rt-transition-colors { @apply transition-colors; }
+  .rt-text-blue-600 { @apply text-blue-600; }
+  .rt-h-4 { @apply h-4; }
+  .rt-w-4 { @apply w-4; }
+  .rt-space-x-4 { @apply space-x-4; }
+  .rt-pt-2 { @apply pt-2; }
+  .rt-pb-3 { @apply pb-3; }
+  .rt-space-y-1 { @apply space-y-1; }
+  .rt-border-t { @apply border-t; }
+  .rt-rounded-md { @apply rounded-md; }
+  .rt-bg-blue-50 { @apply bg-blue-50; }
+  .rt-h-5 { @apply h-5; }
+  .rt-w-5 { @apply w-5; }
+  .rt-pt-4 { @apply pt-4; }
+  .rt-space-y-2 { @apply space-y-2; }
+  .rt-block { @apply block; }
+  .rt-bg-gray-900 { @apply bg-gray-900; }
+  .rt-py-12 { @apply py-12; }
+  .rt-grid { @apply grid; }
+  .rt-grid-cols-1 { @apply grid-cols-1; }
+  .rt-grid-cols-2 { @apply grid-cols-2; }
+  .rt-grid-cols-3 { @apply grid-cols-3; }
+  .rt-grid-cols-4 { @apply grid-cols-4; }
+  .rt-gap-8 { @apply gap-8; }
+  .rt-col-span-1 { @apply col-span-1; }
+  .rt-mb-4 { @apply mb-4; }
+  .rt-text-lg { @apply text-lg; }
+  .rt-font-semibold { @apply font-semibold; }
+  .rt-text-gray-400 { @apply text-gray-400; }
+  .rt-mb-6 { @apply mb-6; }
+  .rt-space-y-4 { @apply space-y-4; }
+  .rt-items-start { @apply items-start; }
+  .rt-mt-1 { @apply mt-1; }
+  .rt-border-gray-800 { @apply border-gray-800; }
+  .rt-pt-8 { @apply pt-8; }
+  .rt-mt-8 { @apply mt-8; }
+  .rt-flex-col { @apply flex-col; }
+  .rt-flex-row { @apply flex-row; }
+  .rt-space-x-6 { @apply space-x-6; }
+  .rt-mt-4 { @apply mt-4; }
+  .rt-mt-0 { @apply mt-0; }
+  .rt-min-h-screen { @apply min-h-screen; }
+}
+
+/* Hover states */
+@layer utilities {
+  .hover\:rt-bg-emerald-700:hover { @apply bg-emerald-700; }
+  .hover\:rt-bg-blue-700:hover { @apply bg-blue-700; }
+  .hover\:rt-bg-gray-50:hover { @apply bg-gray-50; }
+  .hover\:rt-text-blue-600:hover { @apply text-blue-600; }
+  .hover\:rt-text-white:hover { @apply text-white; }
+  .hover\:rt-shadow-md:hover { @apply shadow-md; }
+}
+
+/* Focus states */
+@layer utilities {
+  .focus\:rt-outline-none:focus { @apply outline-none; }
+  .focus\:rt-ring-2:focus { @apply ring-2; }
+  .focus\:rt-ring-offset-2:focus { @apply ring-offset-2; }
+  .focus\:rt-ring-emerald-500:focus { @apply ring-emerald-500; }
+  .focus\:rt-ring-blue-500:focus { @apply ring-blue-500; }
+}
+
+/* Disabled states */
+@layer utilities {
+  .disabled\:rt-bg-gray-300:disabled { @apply bg-gray-300; }
+  .disabled\:rt-bg-gray-100:disabled { @apply bg-gray-100; }
+}
+
+/* Responsive utilities */
+@layer utilities {
+  @screen sm {
+    .sm\:rt-px-6 { @apply px-6; }
+    .sm\:rt-flex-row { @apply flex-row; }
+  }
+  
+  @screen md {
+    .md\:rt-grid-cols-2 { @apply grid-cols-2; }
+    .md\:rt-grid-cols-3 { @apply grid-cols-3; }
+    .md\:rt-flex-row { @apply flex-row; }
+    .md\:rt-mt-0 { @apply mt-0; }
+  }
+  
+  @screen lg {
+    .lg\:rt-px-8 { @apply px-8; }
+    .lg\:rt-flex { @apply flex; }
+    .lg\:rt-hidden { @apply hidden; }
+    .lg\:rt-grid-cols-4 { @apply grid-cols-4; }
+    .lg\:rt-col-span-1 { @apply col-span-1; }
+  }
+}
+
+@layer utilities {
+  .font-momo-trust-display-regular {
+    font-family: "Momo Trust Display", sans-serif;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .font-zen-dots-regular {
+    font-family: "Zen Dots", sans-serif;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .font-museomoderno {
+    font-family: "MuseoModerno", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .font-syncopate-regular {
+    font-family: "Syncopate", sans-serif;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .font-syncopate-bold {
+    font-family: "Syncopate", sans-serif;
+    font-weight: 700;
+    font-style: italic;
+  }
+
+  .font-lexend-giga {
+    font-family: "Lexend Giga", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: italic;
+  }
+
+  .font-zalando-sans-expanded {
+    font-family: "Zalando Sans Expanded", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .font-unbounded {
+    font-family: "Unbounded", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .font-major-mono-display-regular {
+    font-family: "Major Mono Display", monospace;
+    font-weight: 400;
+    font-style: italic;
+  }
+}
