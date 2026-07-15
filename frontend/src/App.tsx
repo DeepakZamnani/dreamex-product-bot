@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { Send, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.dreamexprop.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://dreamex-product-bot-zkml.vercel.app';
 
 interface PropertyImage {
   id: number;
