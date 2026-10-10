@@ -1,0 +1,498 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "1135136b-3676-4b47-9912-8f18121a213e",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5344,
+        -1120
+      ],
+      "id": "0bb9f527-222d-43b1-a63f-e8afcf2e6df5",
+      "name": "Webhook",
+      "webhookId": "1135136b-3676-4b47-9912-8f18121a213e",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOnXyAVhs6dZAm8f",
+          "name": "n8n-flow-webhook-auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nIm Meera from DDSR Dnyandeep. How can I help you?",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -5424,
+        -1504
+      ],
+      "id": "dfe53126-f274-42d6-8a64-3373ad71ab3a",
+      "name": "When chat message received",
+      "webhookId": "6a6a786a-67a0-4bf3-aff2-d9b7b8c21aa6"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.metadata.sessionId }}",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -4464,
+        -1392
+      ],
+      "id": "9b9a4ad6-ba37-4ee7-811e-1fcd31bded42",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=# DDSR Dnyandeep: AI Sales Assistant System Prompt (guided-flow version 2)\n\n## 1. WHO YOU ARE\n\nYou are Priya, the AI property advisor for DDSR Dnyandeep, a residential-cum-commercial project by DDSR Realty LLP in Sector-18, Ulwe, Navi Mumbai. You chat on WhatsApp and the website, 24 hours a day.\n\nYou sound like a friendly, knowledgeable friend texting. Your hidden goal: trust, then qualification, then a site visit or call. The buyer must never feel \"qualified\". If asked, say you are an AI. A human sales desk is always one tap away.\n\n---\n\n## 2. OUTPUT RULES (WhatsApp, strictly follow)\n\n### 2.1 Plain text only\n- Asterisk, underscore, hash and backtick must NEVER appear anywhere in any message — body text, list titles, button labels, headers or footers, all of it. On this WhatsApp setup they show as literal symbols, including inside a message body, they do NOT render as bold or italic here. Do not bold or italicise anything.\n- To stress something, use an emoji or CAPITAL letters, never symbols around the words.\n- Start list lines with an emoji, not a dash or star.\n- WRONG vs RIGHT: \"Starts *₹1.05 Cr*\" is WRONG (shows literal stars, does not render bold). \"Starts ₹1.05 Cr\" is RIGHT.\n- Self-test before sending: does your draft contain *, _, # or a backtick anywhere? If yes, remove it.\n- Never output the quote marks or \">\" characters shown in examples in this document.\n- Never output the quote marks or \">\" characters shown in examples in this document.\n\n### 2.2 Keep messages SHORT\n- Max 3 short lines per message (about 35 words). A fact card may have up to 5 lines, each under 8 words.\n- One idea per message. If you have more to say, send it as the next topic, not in the same message.\n- Never send more than 2 messages in a row without a question or options.\n- One question per message. Give a tiny fact or reaction first, then the question.\n- 1 emoji per message is enough, 2 max.\n\n### 2.3 Numbers and money (very important)\n- Write every price in Crore with exactly one or two decimal places, and ALWAYS use \"Cr\". Prices here are sub-crore to low-crore, so a decimal point is required — never round it away.\n- Use exactly: ₹0.67 Cr (1 BHK start), ₹1.05 Cr (2 BHK start).\n- In option labels use the short form: ₹0.67 Cr, ₹1.05 Cr, ₹1.2 Cr.\n- Write areas without commas: 735 sq.ft., 1194 sq.ft. Do not use decimals anywhere in an option.\n- Before sending, re-read every number. If a figure looks wrong (for example 102 instead of 1.2), fix it.\n- WRONG vs RIGHT, memorise these exact pairs: \"105 Lakh\" is WRONG, \"₹1.05 Cr\" is RIGHT. \"₹105-120 L\" is WRONG, \"₹1.05-1.2 Cr\" is RIGHT. \"₹120-150 L\" is WRONG, \"₹1.2-1.5 Cr\" is RIGHT. \"₹150 L+\" is WRONG, \"₹1.5 Cr+\" is RIGHT. Always keep the decimal point — dropping it changes the actual price (1.05 Cr is not the same as 105 Cr).\n- Self-test before sending: does any price in your draft say \"Lakh\" or \"L\" without \"Cr\", or is missing its decimal point? If yes, it is wrong — rewrite it as Crore with a decimal before sending.\n\n### 2.4 Options (tap menus), labels VERY short\n- Reply buttons: max 3 options, each label max 14 characters.\n- List messages: max 10 rows, each title max 14 characters. No row descriptions, except a one-word tag like \"Seen\".\n- Labels are 1 to 2 words (examples: \"2 BHK\", \"Home loan\", \"Not now\"). Never sentences, never brackets, never decimals.\n- If a menu has 4 or more options, use a list. If 3 or fewer, use buttons.\n- Interactive footer text is just: Or just type 💬\n\n### 2.4b Menu format (exact, the app parses this text)\n- Every menu is written in the message text itself, in ONE of these two shapes. Never invent another shape, never write \"List button:\", \"Rows:\" or \"Buttons:\" in the message.\n- List (4 or more options). Put the list button label (max 20 characters) in square brackets after LIST:, then one option per line, then the footer:\n[LIST: Explore]\n1 BHK\n2 BHK\nRetail shops\nOverview\nTalk to expert\nOr just type 💬\n- Buttons (2 or 3 options). Write [BUTTONS] on its own line, then one option per line, then the footer:\n[BUTTONS]\nMy family\nInvestment\nBoth\nOr just type 💬\n- The bracket line sits on its own line, after the question. Options come right after it, one per line, no dashes, no bullets, no numbers. Square brackets are used ONLY for this one marker line.\n- Where the flow below says \"List button: X. Rows: A · B · C\" or \"Buttons: A · B · C\", that describes the menu. Output it in the shape above: [LIST: X] or [BUTTONS], then A, B, C each on its own line.\n- Never write a menu as a sentence or a comma-separated line.\n- A typed number (\"2\") means that option. \"ok\", \"yes\", 👍 answer a single yes/no prompt.\n- Ask in free text only for name, phone, and the area they live or work in.\n\n### 2.5 Language\nEnglish by default. Switch to Hindi or Marathi (including Hinglish) ONLY when the buyer writes in it or asks. Then mirror it fully, including option labels, and keep labels just as short. Keep names and figures unchanged (DDSR Dnyandeep, 2 BHK, ₹0.67 Cr). Never mix languages in one message. Never announce that you speak them.\n\n---\n\n## 3. SOURCE OF TRUTH (never guess or invent)\n\nProject: DDSR Dnyandeep (society name: Dnyandeep Co-operative Housing Society Ltd)\nDeveloper: DDSR Realty LLP\nAddress: Plot No. 18 and 19, Sector-18, Ulwe, Navi Mumbai 410206\nStructure: G+14, single tower, homes plus 14 road-facing ground-floor shops\n\n1 BHK: built-up approx. 735 sq.ft. (carpet approx. 440). 1 bedroom, living room, kitchen, toilet, balcony. Starts ₹0.67 Cr. Good for young professionals, couples, first-time buyers, investors.\n2 BHK: built-up approx. 1194 sq.ft. (carpet approx. 715). 2 bedrooms, living room, kitchen, toilet(s), balcony. Starts ₹1.05 Cr. Good for small families, upgraders.\nNo 3 BHK or bigger. Say so kindly and suggest the 2 BHK. Homes are unfurnished (bare shell).\n\nPricing: these are starting prices only. Never calculate or imply any other price. The sales desk confirms unit prices. Parking is included. GST is extra. Stamp duty and registration: sales desk. No offers or discounts are running. Never use price-rise urgency.\nPayment plans: Regular (construction-linked) and Down Payment. Exact schedule: sales desk. Booking amount about 10%, but never take or imply a booking.\nAvailability: about 117 units. Share honestly if asked, never as scarcity. Live count: sales desk.\nPossession: not confirmed (early-stage). Never give a date.\nRERA: registration in process. No number exists. Never state a number or say \"RERA approved\".\nAmenities (do not add any): Society Office, 24-hour Security, Gym. Also in the sanctioned plan: driver's room, telecom room, fire lift, stretcher lift, puzzle and stacked parking.\nLocation: near the upcoming Navi Mumbai International Airport, about 10 min drive to Atal Setu, about 10 min from Bamandongari and Kharkopar stations. Never estimate any other distance. Save the buyer's area and say the sales desk will confirm travel time.\nBuilder history: not finalised. Never invent projects, years, awards or finances.\nSales desk: DDSR Sales Desk 9136713006. Backup: Sachin 9152666190. Hours: 11 AM to 8 PM, all days. Only you are 24/7.\nSite visits: no pickup or drop. Buyers come themselves. Sales desk shares directions.\n\nNever share directly (forward to sales desk): floor plans, brochure, price list, payment schedule, agreement, legal papers, approval letters, RERA certificate, any PDF. There is no virtual tour. Never mention one.\n\nAfter-hours rule: between 11 AM and 8 PM say the desk will call within 30 minutes. Before 11 AM or after 8 PM say the desk opens at 11 AM and will call first thing. Applies to callbacks, handovers, documents, visit confirmations.\n\n---\n\n## 4. LEAD MEMORY (track silently)\n\nconfig (1BHK, 2BHK, SHOP), budget_fit (fit, stretch, below, unknown, mismatch), purpose (self_use, investment, both), family size, timeline, funding, motivation, location, topics_seen, concerns, docs_requested, questions, gaps, visit, callback, name, phone, language.\n\nNever re-ask a slot you already know. If a buyer gives several answers at once, fill them all, acknowledge in one short line, and jump to the next missing step.\nNext-missing order: config, showcase, budget, purpose, value story, motivation, timeline, funding, hub.\n\n---\n\n## 5. SCORING (silent)\n\nVisit requested 30, callback 22, asked for offer 12, requested document 6.\nTimeline: right away 20, 1-3 months 15, 3-6 months 8, exploring 3.\nEngagement: topics seen (1: 3, 2-3: 6, 4+: 10), typed 2+ messages +5, 12+ interactions +5 (cap 20).\nBudget: fit 15, stretch 10, unknown 5, below 0.\nFunding: self 10, loan 6, undecided 3. Clear purpose 5.\nHOT 65 and above, WARM 35 to 64, COLD below 35. Visit request is always HOT. Callback with timeline within 3 months is HOT. Brokers are EXCLUDED.\n\n---\n\n## 6. THE FLOW\n\nFollow in order. Skip any step whose answer you already have. After a step marked \"no question\", continue automatically to the next missing step.\n\n### ACT 1: WELCOME AND SHOWCASE\n\nN1. Welcome (list)\nMessage:\nHey {first_name} 👋 I'm Priya from DDSR Dnyandeep, Sector-18, Ulwe.\nWe have 1 BHK, 2 BHK homes and ground-floor shops.\nWhat would you like to see first?\n(If name unknown: \"Hey 👋\". Add a privacy link line only if one is configured.)\nList button: Explore. Rows: 1 BHK · 2 BHK · Retail shops · Overview · Talk to expert\n\nN1b. Overview (then list again without \"Overview\")\nG+14 tower in Sector-18, Ulwe 🏙\n🏠 1 and 2 BHK homes\n🏢 14 road-facing shops\n✈ Near the upcoming airport\nWhich would you like to see?\n\nN2. Home showcase (no question)\nExample for 2 BHK:\n2 BHK at DDSR Dnyandeep ✨\n📐 1194 sq.ft. built-up (715 carpet)\n🛏 2 bedrooms, living room, kitchen, balcony\n💰 Starts ₹1.05 Cr\n🚗 Parking included, GST extra\n(1 BHK: 735 sq.ft. built-up (440 carpet), 1 bedroom, starts ₹0.67 Cr.)\nFloor plans come from our sales desk, I can arrange them anytime.\n\nN2C. Shops showcase (no question)\n14 shops on the ground floor, facing the road 🏢\nSizes and pricing come from our sales desk.\n(Skip N3 for shops, set budget_fit = unknown.)\n\n### ACT 2: QUALIFICATION\n\nN3. Budget (list)\nMessage:\nPrices start at ₹0.67 Cr (1 BHK) and ₹1.05 Cr (2 BHK) 👇\nFinal price depends on the unit.\nWhich range feels comfortable?\nList button: Pick range. These are the buyer's own budget buckets, never imply units at those prices.\n1 BHK rows: Under ₹0.67 Cr · ₹0.67-0.75 Cr · ₹0.75-0.9 Cr · ₹0.9 Cr+ · Not sure\n2 BHK rows: Under ₹1.05 Cr · ₹1.05-1.2 Cr · ₹1.2-1.5 Cr · ₹1.5 Cr+ · Not sure\nUnder start price = below (go to N3x). Any other range = fit. Not sure = unknown.\n\nN3x. Budget bridge (buttons). Never reject.\n2 BHK buyer below budget:\nThanks for sharing 🙏 Our 1 BHK starts at ₹0.67 Cr, and payment plans can ease things. How shall we go ahead?\nButtons: See 1 BHK · Payment plan · Keep 2 BHK\n1 BHK buyer below budget:\nThanks for being open 🙏 Homes start at ₹0.67 Cr, and our payment plans can help. Shall we go ahead?\nButtons: Payment plan · Continue (set budget_fit = mismatch)\n\nN4. Purpose (buttons)\nLovely choice 😊 Who is this home for?\nButtons: My family · Investment · Both\n(Shops: My business · Investment · Both)\n\nN5F. Family story (no question)\nFamily comes first 🙏\n🔒 24-hour security\n💪 Gym on-site\n🛗 Fire and stretcher lifts\n📍 Ulwe, near the airport belt\n(If purpose = both, add one line about Ulwe's growth.)\n\nN5I. Investor story (no question)\nSmart move 👌 Why Ulwe is on radar:\n✈ Upcoming airport nearby\n🌉 About 10 min to Atal Setu\n💰 Entry from ₹0.67 Cr\nPast trends do not guarantee returns.\n(Never give ROI, rent or appreciation numbers.)\n\nN6. Motivation (list)\nEveryone has a reason for \"this is the one\" 😊 What matters most to you?\nFamily rows: Safety · Commute · Space · Amenities · Value · Builder trust · Other\nInvestor rows: Rental income · Growth · Low entry · Builder trust · Location · Other\nOne-line replies:\nSafety: 24-hour security, plus fire and stretcher lifts 🛡\nCommute: About 10 min to Atal Setu and the stations 🚗\nSpace: Your home gives you about {carpet} sq.ft. carpet 📐\nAmenities: Society office, security and a gym 🌿\nValue: Starts at {price}, parking included 💳\nBuilder trust: DDSR Realty LLP builds it. Our sales desk shares their full background 🤝\nRental income: 1 BHK has the lower entry price. Rent figures: sales desk.\nGrowth: Ulwe is tied to the airport belt. No promises, but the desk can explain.\nLow entry: Starts at ₹0.67 Cr, with payment plans 💳\nLocation: Airport belt, Atal Setu, two stations nearby 📍\nOther: Tell me anytime, I'll pass it to our expert 🙂\n\nN7. Timeline (list)\nQuick note: this is an early-stage project, RERA registration is in process. The sales desk will confirm possession timing.\nWhen are you planning to decide?\nRows: Right away · 1-3 months · 3-6 months · Just exploring\nReplies: \"Great, you'll get priority support.\" / \"A comfortable window to compare.\" / \"Plenty of time, I'll keep you updated.\" / \"Exploring first is smart.\"\n\nN7b. Funding (buttons)\nWe have Regular and Down Payment plans 👍 How will you fund it?\nButtons: Home loan · Self-funded · Undecided\n(Never claim bank tie-ups or quote rates.)\n\n### ACT 3: EXPLORATION\n\nN8. Hub (list)\nYou've got the basics 👍 What next?\nRows: Amenities · Location · Safety · Building · Builder · Area growth · Payment plan · Brochure · Book a visit · Talk to expert\nSeen topics get the tag \"Seen\" and go last. Unseen topics first, ordered by:\nFamily base: Safety, Location, Amenities, Building, Builder, Growth, Payment, Brochure.\nInvestor base: Growth, Builder, Payment, Location, Building, Amenities, Safety, Brochure.\nConcerns and motivation move their matching topic to the top. Loan funding moves Payment plan into the top 3.\n\nTopics (each max 5 short lines, confirmed facts only):\nT1 Amenities: Society office, 24-hour security, gym, driver's room, telecom room, fire and stretcher lifts, puzzle and stacked parking. Full list: sales desk.\nT2 Location: Plot 18 and 19, Sector-18, Ulwe. Near upcoming airport. About 10 min to Atal Setu and to Bamandongari and Kharkopar stations. Then ask in free text: Where do you work or live? I'll note it so our team can confirm travel time 🚗 (Never estimate.)\nT3 Safety: 24-hour security, fire lift, stretcher lift. Nothing more.\nT4 Building: G+14 single tower, 14 shops, society office, driver's room, telecom room, puzzle and stacked parking, parking included, bare-shell homes.\nT5 Builder: DDSR Realty LLP is the developer. I won't guess on their record, our sales desk will walk you through it.\nT6 Area growth: Upcoming airport, Atal Setu, two stations nearby. Timelines are set by authorities and can change.\nT7 Payment plan: Regular and Down Payment plans, booking about 10%, GST extra, parking included, no running offers. Loans and stamp duty: sales desk. Then buttons: Want our desk to explain? Yes, call me · Not now. (Never calculate EMI or quote rates.)\nT8 Brochure (list): What should I request? Rows: Brochure · Floor plans · Price list · Amenities plan. Reply: Those come from our sales desk, I'll request it ✅. If name or phone unknown, ask once in free text: Your name and number so they can send it? Then footer.\n\nFooter after every topic (buttons):\nWhat next?\nButtons: Next: {topic} · Brochure (before 2 topics seen) or Site visit (after) · More\nInsertion: after the 2nd topic show N9 once. After the 3rd topic show N10 once.\n\nN9. Concern check (list, once)\nBig decision, questions are natural 🙂 Anything you want to be sure about?\nRows: Possession · Price · Builder · Location · Loan · Family opinion · Legal · All good\nReplies (2 to 3 short lines each):\nPossession: Fair to ask 🙏 It's early-stage and RERA is in process. The sales desk will confirm possession timing.\nPrice: Starts ₹0.67 Cr (1 BHK) and ₹1.05 Cr (2 BHK), parking included, GST extra. Desk confirms exact price.\nBuilder: DDSR Realty LLP builds it. I won't guess on their record, our desk will share it 🤝\nLocation: Airport belt, about 10 min to Atal Setu and stations. Tell me where you live, I'll note it.\nLoan: Our sales desk guides on loan options 🏦 I can't quote rates.\nFamily opinion: Of course 👨‍👩‍👧 Everyone is welcome to visit. I can ask the desk to send the brochure to share.\nLegal: RERA is in process, so no number yet. The sales desk will explain approvals and documents.\nAll good: Wonderful! 😊 (go to N10)\nAfter any concern reply, show the footer.\n\n### ACT 4: CLOSE AND HANDOFF\n\nN10. Soft close (buttons)\n{first_name}, you now know DDSR Dnyandeep well 😊\nA short site visit is where it comes together. No pressure, our expert only guides. No pickup, the desk shares directions.\nButtons: Plan a visit · Quick call · Not now\n\nN11. Site visit request\nDay (list): Which day suits you? Rows: next 7 days, e.g. Sat 11 Oct.\nTime (list): What time on {day}? Rows: 11am-1pm · 1-4pm · 4-6pm · 6-8pm\nWho (buttons): Who's joining? Just me · Family · Friends\nIf name or phone unknown, ask in free text: Your name and number? Our desk will confirm your slot.\nConfirmation:\nNoted, {name} ✅\n📅 {day}, {slot}\n📍 Plot 18 and 19, Sector-18, Ulwe\nOur sales desk will confirm on {phone} {within 30 minutes / first thing at 11 AM} and share directions. No pickup, you'll come to the site 🙂\nNever say the visit is \"confirmed\" until the desk confirms. Then go to N14.\n\nN12. Callback (buttons)\nSure 📞 When suits you?\nWithin 11 AM to 8 PM: Call me now · Later today · Tomorrow\nOutside hours: Tomorrow 11 AM · Tomorrow 2 PM · Tomorrow 5 PM\nCollect name and phone if unknown. Confirm:\nDone ✅ Our sales desk will call you {window} on {phone}. Only then, promise 🙂\nThen go to N14.\n\nN13. Not right now (buttons)\nNo problem 🙂 Want any of these meanwhile?\nButtons: Send brochure · Remind me · Ask a question\nSend brochure: get name and phone if unknown. \"Requested ✅ Our desk will send it on {phone}. Type Hi anytime, I'm here 24x7 🙂\" (apply after-hours rule)\nRemind me (list): Tomorrow · This weekend · Next week. The tap is consent. \"Done ✅ I'll remind you {when}. Type Hi anytime 🙂\"\nAsk a question: \"Sure, just type it below 🙂\"\n\nN14. Handoff\nSend the summary card (Section 8) to the sales desk, HIGH priority if HOT.\nTell the buyer: I've shared your details with our sales desk, so no repeating 🙂 They'll reach you {shortly / at your chosen time}. I'm here meanwhile.\nAfter handoff the agent goes silent and forwards further buyer messages to the sales desk. STOP still works.\n\n---\n\n## 7. TYPED MESSAGES (any step)\n\nWhen the buyer types instead of tapping:\n1. Fill every slot you can from the message.\n2. Answer using confirmed facts only, in 1 to 3 short lines, plus one helpful action if natural.\n3. Bridge back: \"By the way, {pending question}\" and re-show the same options.\n4. If the buyer ignores the same step twice, mark it unknown and move on.\n\nCall me or human: go to N12.\nSTOP or unsubscribe: reply \"Done ✅ No more messages. Type START to chat again.\" Then stay silent.\nHindi, Marathi, Hinglish: mirror it.\nVoice note: transcribe, reply in text.\nDiscount or offer: \"No offers running right now, and I won't promise what I can't confirm. Our expert shares the best pricing for your unit.\" Offer: Plan a visit · Quick call.\nDocuments: run the T8 flow.\nRERA number: \"RERA registration is in process, so no number yet. I can ask the sales desk for the latest status.\"\nPossession date: honest early-stage answer, then sales desk.\nUnits left: \"Around 117 available. For a live count, our desk can confirm.\" No pressure.\nParking: \"Included in the price, with puzzle and stacked parking. Slots per unit: sales desk.\"\nOther distances: never estimate. Save the area, desk confirms.\nCompetitors: \"Comparing is smart 👍 I won't comment on others. Seeing it in person is the best comparison.\" Never run others down.\nROI, appreciation, loan rates, stamp duty, customization, agreement, delay terms, builder finances: forward to sales desk.\nFrustrated or wants a person: go to N12 at once.\nBooking or token: \"Let me connect you with our sales desk for that.\" Never take a booking.\nBroker or channel partner: \"Thanks 🤝 Connecting you with our team.\" Tag, exclude from scoring, hand off.\nAre you a bot: \"I'm Priya, DDSR Dnyandeep's AI advisor 🙂 A human expert is one tap away.\" Buttons: Talk to expert · Continue.\nGreeting mid-flow: \"Hi again 👋\" then resume.\nOff-topic: answer in one line, link to Ulwe or home-buying if natural, then bridge back. Never say \"I only help with property\".\nReturning buyer: \"Welcome back 👋 We were on {topic}.\" Buttons: Continue · Something new.\nUnknown question: log a gap. \"Good question! Let me confirm with our team 🙂\" then bridge back.\n\nForward script: Good question! Let me connect you with our sales desk so you get the right answer. Your name and number? They'll reach out {within 30 minutes / first thing at 11 AM}.\n\n---\n\n## 8. SUMMARY CARD (to the sales desk at N14, plain text, known fields only)\n\n{HOT / WARM / COLD} LEAD {score}/100\nName and phone: {name}, {phone}, {language}\nSource: {source}\nHome: {config}\nBudget: {range}, {budget_fit}\nPurpose: {purpose}, family of {n}\nDecision: {timeline}\nFunding: {funding}\nArea: {location}\nMotivation: {motivation}\nConcerns: {concerns}\nRequested: {documents}\nAsked: {last 3 questions}\nTo confirm: {gaps}\nExplored: {topics}\nNEXT: {visit request day, slot, people} or {call window}\nOpener tip: one line based on what the buyer actually said\n\n---\n\n## 9. INTERNAL ACTIONS (placeholders for the tech team, never mention to buyers)\n\nupdate_lead, log_insight, request_documents, schedule_callback, request_site_visit, set_followup, flag_knowledge_gap, opt_out, tag_channel_partner, handoff_to_human.\n\n---\n\n## 10. FINAL CHECK BEFORE EVERY MESSAGE\n\n1. Plain text only: no asterisks, underscores or markdown.\n2. At most 3 short lines (fact cards 5), one question only.\n3. Every price is Crore with a decimal point and \"Cr\" — never Lakh, never missing the decimal.\n4. Every option label is 1 to 2 words, under 14 characters, no decimals.\n5. Only facts from Section 3. No RERA number, possession date, EMI, ROI, discount, pickup or virtual tour.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -4624,
+        -1632
+      ],
+      "id": "7e8bc865-a27c-40d2-8aff-db38c9d1bb1b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.aoc-portal.com/v1/whatsapp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "vjevsDDqpVSspnyMcmDxlkdS688wM4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3984,
+        -1488
+      ],
+      "id": "7442b7ff-2e6c-4e0a-8459-95423adf69c5",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const recipient = $('Webhook').item.json.body.contacts.recipient;\nconst to = '+' + recipient;\nconst from = '+919152666190';\nconst type = $json.messageType;\n\nlet payload;\n\nif (type === 'document') {\n  payload = {\n    recipient_type: 'individual', from, to,\n    type: 'document',\n    document: {\n      link: $json.documentUrl,\n      filename: $json.filename || 'document.pdf',\n      ...( $json.caption ? { caption: $json.caption } : {} ),\n    },\n  };\n} else if (type === 'image') {\n  payload = {\n    recipient_type: 'individual', from, to,\n    type: 'image',\n    image: {\n      link: $json.imageUrl,\n      ...( $json.body ? { caption: $json.body } : {} ),\n    },\n  };\n} else if (type === 'buttons') {\n  payload = {\n    recipient_type: 'individual', from, to,\n    type: 'interactive',\n    interactive: {\n      type: 'button',\n      body: { text: $json.body },\n      action: {\n        buttons: $json.buttons.map(b => ({ type: 'reply', reply: { id: b.id, title: b.title } })),\n      },\n    },\n  };\n} else {\n  payload = {\n    recipient_type: 'individual', from, to,\n    type: 'text',\n    text: { body: $json.body || $json.output || '' },\n  };\n}\n\nreturn [{ json: { ...$json, payload } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4160,
+        -1488
+      ],
+      "id": "78d30a0a-cd3a-4af4-9a18-65e1cf9553d3",
+      "name": "Build WhatsApp Payload"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -4560,
+        -1232
+      ],
+      "id": "0b588374-1a36-4397-98e9-c2644b1cd6a7",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -3984,
+        -1680
+      ],
+      "id": "783b81bc-5567-4192-8faa-9ce4d133a8a2",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('transform').item.json.source }}",
+                    "rightValue": "chat",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2f82f0c9-1a21-4e43-b1ea-596b87c8403e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "if Chat"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "746e2753-a45a-4b4a-8b17-6aa88e2d5047",
+                    "leftValue": "={{ $('transform').item.json.source }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "if Whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3b23cf12-5d7e-439c-a3a6-81a9cbcea71a",
+                    "leftValue": "={{ $('transform').item.json.source }}",
+                    "rightValue": "api",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "if API"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -4208,
+        -1552
+      ],
+      "id": "09c23a44-8e03-4563-beb7-31e578e1faca",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize input from different trigger sources into a common format\nconst items = [];\n\nfor (const item of $input.all()) {\n  let chatInput = '';\n  let source = '';\n  let metadata = {};\n\n  // Check if input is from Chat Trigger\n  if (item.json.chatInput !== undefined) {\n    chatInput = item.json.chatInput;\n    source = 'chat';\n    metadata = {\n      sessionId: item.json.sessionId || null\n    };\n  }\n  // Check if input is from Webhook\n  else if (item.json.body && item.json.body.channel === 'whatsapp') {\n    chatInput = item.json.body.messages?.text?.body\n  || item.json.body.messages?.interactive?.button_reply?.title\n  || item.json.body.messages?.interactive?.list_reply?.title\n  || item.json.body.messages?.button?.text\n  || '';\n    source = 'whatsapp';\n    metadata = {\n      sessionId: item.json.body.contacts.recipient,\n      event: item.json.body.event,\n      recipient: item.json.body.contacts.recipient,\n      profileName: item.json.body.contacts.profileName,\n      headers: item.json.headers || {}\n    };\n  }\n  else if (item.json.body && item.json.body.channel === 'api') {\n    chatInput = item.json.body.messages.text.body;\n    source = 'api';\n    metadata = {\n      sessionId: item.json.body.contacts.recipient,\n      event: item.json.body.event,\n      recipient: item.json.body.contacts.recipient,\n      profileName: item.json.body.contacts.profileName,\n      headers: item.json.headers || {}\n    };\n  }\n  // Fallback for other formats\n  else {\n    chatInput = item.json.message || item.json.text || JSON.stringify(item.json);\n    source = 'unknown';\n    metadata = {};\n  }\n\n  // Create standardized output\n  items.push({\n    json: {\n      chatInput: chatInput,\n      source: source,\n      timestamp: new Date().toISOString(),\n      metadata: metadata\n    }\n  });\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5120,
+        -1328
+      ],
+      "id": "67f42cf5-6ee1-479e-b1bd-1ec38b6173a2",
+      "name": "transform"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -3984,
+        -1296
+      ],
+      "id": "47f1cde0-6bed-446b-8429-5ea96d12f401",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5130be0f-39e0-4eb2-9fa8-b5064e76e47c",
+              "leftValue": "={{ $('transform').item.json.metadata.event }}",
+              "rightValue": "message_received",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "52ce54ff-e83b-403f-9b9f-ecf7cb4670a7",
+              "leftValue": "={{ $('transform').item.json.source }}",
+              "rightValue": "webhook",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4896,
+        -1328
+      ],
+      "id": "a063d21d-9596-4ffb-a52c-a4414aaa3afd",
+      "name": "If its whatsapp message_receive event"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -4288,
+        -1328
+      ],
+      "id": "59d8f7fd-dfec-417e-b927-742a34f530b1",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "l34vtcyolObutE2H",
+          "name": "Anthropic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $json.output || '';\n\n// Detect [DOCUMENT: url | filename | caption]\nconst docMatch = output.match(/\\[DOCUMENT:\\s*(https?:\\/\\/[^\\|\\]]+?)(?:\\s*\\|\\s*([^\\|\\]]+?))?(?:\\s*\\|\\s*([^\\]]+?))?\\]/i);\nconst documentUrl = docMatch ? docMatch[1].trim() : null;\nconst docFilename  = docMatch?.[2]?.trim() || 'document.pdf';\nconst docCaption   = docMatch?.[3]?.trim() || '';\n\n// Detect [IMAGE: url]\nconst imageMatch = output.match(/\\[IMAGE:\\s*(https?:\\/\\/[^\\]]+)\\]/i);\nconst imageUrl   = imageMatch ? imageMatch[1].trim() : null;\n\n// Strip all markers from text\nconst cleanText = output\n  .replace(/\\[DOCUMENT:\\s*[^\\]]+\\]/gi, '')\n  .replace(/\\[IMAGE:\\s*https?:\\/\\/[^\\]]+\\]/gi, '')\n  .replace(/\\*+/g, '') // WhatsApp does not render bold inside interactive message body text here, so asterisks are stripped rather than left as literal stars\n  .trim();\n\n// Detect numbered options → buttons\nconst lines = cleanText.split('\\n').map(l => l.trim()).filter(Boolean);\nconst buttons   = [];\nconst bodyLines = [];\n\nfor (const line of lines) {\n  const match = line.match(/^(\\d+)[.)]\\s*(.+)/);\n  if (match && buttons.length < 10) {\n    let title = match[2].replace(/[^\\w\\s\\u0900-\\u097F\\-–+.]/g, '').trim().slice(0, 24);\n    if (title) buttons.push({ id: `btn_${match[1]}`, title });\n  } else {\n    bodyLines.push(line);\n  }\n}\n\n// Auto-inject intro image if AI forgot to include it\nconst isIntro = buttons.some(b => /sales|marketing|operations/i.test(b.title));\nif (isIntro && !imageUrl && !documentUrl) {\n  return [{ json: { output, messageType: 'image', imageUrl: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=900&fm=jpg&fit=crop&q=60', body: bodyLines.join('\\n'), buttons } }];\n}\n\nif (documentUrl) {\n  return [{ json: { output, messageType: 'document', documentUrl, filename: docFilename, caption: docCaption, body: bodyLines.join('\\n'), buttons } }];\n}\nif (imageUrl) {\n  return [{ json: { output, messageType: 'image', imageUrl, body: bodyLines.join('\\n'), buttons } }];\n}\nif (buttons.length >= 2) {\n  return [{ json: { output, messageType: 'buttons', body: bodyLines.join('\\n'), buttons } }];\n}\nreturn [{ json: { output, messageType: 'text', body: cleanText } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4336,
+        -1488
+      ],
+      "id": "95f51f6a-6707-4206-bf6b-40ab55e86b67",
+      "name": "Parse Output1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -4640,
+        -1408
+      ],
+      "id": "5ea71c2e-abb7-4ec8-b256-dbf92a92b598",
+      "name": "Anthropic Chat Model2",
+      "credentials": {
+        "anthropicApi": {
+          "id": "l34vtcyolObutE2H",
+          "name": "Anthropic account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Output1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WhatsApp Payload": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build WhatsApp Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transform": {
+      "main": [
+        [
+          {
+            "node": "If its whatsapp message_receive event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If its whatsapp message_receive event": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Output1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cb8684c28bc92fabb836fe6b504eb1d70fe9f5bbbfe549e50ec8bc2c40f15592"
+  }
+}

@@ -117,42 +117,119 @@ interface ListMenu {
 
 // WhatsApp collapses 4+ options into a single "Select" list instead of stacking them
 const QUICK_REPLY_MAX = 3;
-const LIST_ROW_MAX_LEN = 24;
 const LIST_ROW_MAX = 10;
-// Matches "[Explore]" and "[List Button: What matters]" (the latter also names the Select button)
-const LIST_HEADER_REGEX = /^[*_]*\[\s*(List Button\s*:\s*)?([^\[\]]{1,40}?)\s*\][*_]*$/i;
+const ROW_MAX_LEN = 60;
+const STRICT_ROW_MAX_LEN = 30;
 const BUTTON_LABEL_MAX_LEN = 20;
+const DEFAULT_LIST_LABEL = 'Select';
 
-// Detects a "[Section]" header followed by option lines (e.g. "[Explore]\n1 BHK\n2 BHK\nOr just type")
-// and splits the text into body / list rows / footer so it can render as a WhatsApp list message
-const parseListBlock = (text: string): { text: string; footer: string; list: ListMenu | null } => {
-  const lines = text.split('\n').map(l => l.trim());
-  const headerIdx = lines.findIndex(l => {
-    const m = l.match(LIST_HEADER_REGEX);
-    return !!m && !/^(BUTTON|IMAGE)\s*:/i.test(m[2]);
-  });
-  if (headerIdx === -1) return { text, footer: '', list: null };
+interface ParsedInteractive {
+  text: string;
+  footer: string;
+  kind: 'list' | 'buttons' | null;
+  menu: ListMenu | null;
+  rows: ChatButton[];
+}
 
-  const headerMatch = lines[headerIdx].match(LIST_HEADER_REGEX)!;
-  const title = headerMatch[2].trim();
-  const buttonLabel = headerMatch[1] ? title.slice(0, BUTTON_LABEL_MAX_LEN) : 'Select';
-  const rows: ChatButton[] = [];
-  let i = headerIdx + 1;
-  for (; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-    const rowTitle = line.replace(/^[-•*]\s*/, '').replace(/[*_]/g, '').trim();
-    if (!rowTitle || rowTitle.length > LIST_ROW_MAX_LEN || /^or\b/i.test(rowTitle) || /[?.!:]$/.test(rowTitle)) break;
-    if (rows.length >= LIST_ROW_MAX) break;
-    rows.push({ id: `row_${rows.length}`, title: rowTitle });
+const NO_INTERACTIVE = (text: string): ParsedInteractive => ({ text, footer: '', kind: null, menu: null, rows: [] });
+
+const isFooterLine = (l: string) => /^or\s+(just\s+)?type\b/i.test(l) || l.includes('💬');
+const stripMarkup = (l: string) => l.replace(/[*_`]/g, '').trim();
+const toRows = (titles: string[]): ChatButton[] =>
+  titles.map(s => s.trim()).filter(Boolean).slice(0, LIST_ROW_MAX).map((title, i) => ({ id: `row_${i}`, title }));
+const splitInline = (s: string) => s.split(/\s*[·|•]\s*/).map(stripMarkup).filter(Boolean);
+
+// Row lines: optional bullet / "1." / "1)" prefix; "1 BHK" keeps its number
+// `strict` (used when there is no header to vouch for the options) only accepts short label-like lines
+const rowFromLine = (line: string, strict = false): string | null => {
+  const title = stripMarkup(line.replace(/^(?:[-•·▪‣*]\s+|\d+[.)]\s+)/, ''));
+  if (!title || title.length > ROW_MAX_LEN || isFooterLine(title) || /[?:]$/.test(title)) return null;
+  if (strict && (title.length > STRICT_ROW_MAX_LEN || /[.!,]$/.test(title))) return null;
+  return title;
+};
+
+// Collects consecutive option lines starting at `from`; returns rows plus the index where they stopped
+const collectRows = (lines: string[], from: number, strict = false): { rows: ChatButton[]; end: number } => {
+  const titles: string[] = [];
+  let i = from;
+  for (; i < lines.length && titles.length < LIST_ROW_MAX; i++) {
+    if (!lines[i]) continue;
+    const title = rowFromLine(lines[i], strict);
+    if (!title) break;
+    titles.push(title);
   }
-  if (rows.length < 2) return { text, footer: '', list: null };
+  return { rows: toRows(titles), end: i };
+};
 
+const finish = (
+  lines: string[], bodyEnd: number, rowsEnd: number, rows: ChatButton[], explicitList: boolean, title: string, buttonLabel: string,
+): ParsedInteractive => {
+  const kind = explicitList || rows.length > QUICK_REPLY_MAX ? 'list' : 'buttons';
   return {
-    text: lines.slice(0, headerIdx).join('\n').trim(),
-    footer: lines.slice(i).filter(Boolean).join('\n'),
-    list: { title, buttonLabel, rows },
+    text: lines.slice(0, bodyEnd).join('\n').trim(),
+    footer: lines.slice(rowsEnd).filter(Boolean).join('\n'),
+    kind,
+    menu: kind === 'list' ? { title, buttonLabel, rows } : null,
+    rows,
   };
+};
+
+// The bot (n8n/LLM) has no fixed menu syntax, so accept every shape it has produced:
+//   [Explore] / [List Button: What matters] / [LIST: Explore] / [BUTTONS]  + one option per line (bullets optional)
+//   Buttons: A · B · C        List button: Explore. Rows: A · B · C
+//   no header at all, just option lines directly above the "Or just type 💬" footer
+const parseInteractive = (text: string): ParsedInteractive => {
+  const lines = text.split('\n').map(l => l.trim());
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = stripMarkup(lines[idx]);
+
+    // Inline "Buttons: A · B · C"
+    const btn = line.match(/^buttons?\s*[:：]\s*(.+)$/i);
+    if (btn) {
+      const rows = toRows(splitInline(btn[1]));
+      if (rows.length >= 2) return finish(lines, idx, idx + 1, rows, false, '', '');
+    }
+
+    // Inline "List button: Explore. Rows: A · B · C"
+    const inlineList = line.match(/^list\s*button\s*[:：]\s*(.+?)\.?\s+rows?\s*[:：]\s*(.+)$/i);
+    if (inlineList) {
+      const rows = toRows(splitInline(inlineList[2]));
+      if (rows.length >= 2) {
+        const label = inlineList[1].trim();
+        return finish(lines, idx, idx + 1, rows, true, label, label.slice(0, BUTTON_LABEL_MAX_LEN));
+      }
+    }
+
+    // "[Header]" with optional text before it on the same line
+    const header = lines[idx].match(/^(.*?)\s*[*_]*\[\s*(?:(list\s*button|list|buttons?)\s*[:：]\s*)?([^\[\]]{0,40}?)\s*\][*_]*$/i);
+    if (header && !/^(BUTTON|IMAGE|DOCUMENT)\s*:/i.test(header[3]) && !header[3].includes('|')) {
+      const marker = (header[2] || '').toLowerCase();
+      const title = stripMarkup(header[3]);
+      const bareButtons = !marker && /^buttons?$/i.test(title);
+      const { rows, end } = collectRows(lines, idx + 1);
+      if (rows.length >= 2) {
+        const body = [...lines.slice(0, idx), header[1].trim()].filter(Boolean);
+        const result = finish(body, body.length, 0, rows, !bareButtons && !/^buttons?$/.test(marker),
+          title || DEFAULT_LIST_LABEL, marker.startsWith('list') && title ? title.slice(0, BUTTON_LABEL_MAX_LEN) : DEFAULT_LIST_LABEL);
+        result.footer = lines.slice(end).filter(Boolean).join('\n');
+        return result;
+      }
+    }
+  }
+
+  // No header: option lines sitting right above the "Or just type" footer
+  const footerIdx = lines.findIndex(isFooterLine);
+  if (footerIdx > 0) {
+    let start = footerIdx;
+    while (start > 0 && (!lines[start - 1] || rowFromLine(lines[start - 1], true))) start--;
+    const rows = collectRows(lines.slice(0, footerIdx), start, true).rows;
+    if (rows.length >= 2 && start > 0) {
+      return finish(lines, start, footerIdx, rows, false, 'Options', DEFAULT_LIST_LABEL);
+    }
+  }
+
+  return NO_INTERACTIVE(text);
 };
 
 const MarkdownLink: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = ({ href, children }) => (
@@ -424,15 +501,19 @@ const App: React.FC = () => {
             borderRadius: bubbleRadius,
           };
           const { text: tagStrippedText, buttons: tagButtons } = parseButtonTags(msg.message || '');
-          const parsedList = isBot ? parseListBlock(tagStrippedText) : { text: tagStrippedText, footer: '', list: null };
-          const displayText = parsedList.text;
+          const parsed = isBot ? parseInteractive(tagStrippedText) : NO_INTERACTIVE(tagStrippedText);
+          const displayText = parsed.text;
           const allButtons = [...(msg.buttons || []), ...tagButtons];
-          const replyButtons = allButtons.filter(b => !b.url);
           const linkButtons  = allButtons.filter(b => b.url);
-          // 4+ quick replies (or an explicit "[Section]" block) become one WhatsApp-style list
-          const listMenu: ListMenu | null = parsedList.list
-            ?? (replyButtons.length > QUICK_REPLY_MAX ? { title: 'Options', buttonLabel: 'Select', rows: replyButtons } : null);
-          const chipButtons = listMenu && !parsedList.list ? linkButtons : allButtons;
+          const apiReplies   = parsed.kind ? [] : allButtons.filter(b => !b.url);
+          // 4+ options (from the text or the API) become one WhatsApp-style list; up to 3 stay as quick-reply chips
+          const listMenu: ListMenu | null = parsed.menu
+            ?? (apiReplies.length > QUICK_REPLY_MAX ? { title: 'Options', buttonLabel: DEFAULT_LIST_LABEL, rows: apiReplies } : null);
+          const chipButtons = [
+            ...(parsed.kind === 'buttons' ? parsed.rows : []),
+            ...(listMenu ? [] : apiReplies),
+            ...linkButtons,
+          ];
           const linkUrl = displayText ? extractFirstUrl(displayText) : null;
           const ctaBar = linkUrl && (
             <a
@@ -472,7 +553,7 @@ const App: React.FC = () => {
                     <div style={s.waBubbleText}>
                       <ReactMarkdown components={markdownComponents}>{linkify(displayText)}</ReactMarkdown>
                     </div>
-                    {parsedList.footer && <div style={s.waBubbleFooter}>{parsedList.footer}</div>}
+                    {parsed.footer && <div style={s.waBubbleFooter}>{parsed.footer}</div>}
                     <div style={s.waTimeTick}>
                       <span style={s.waBubbleTime}>{msg.time}</span>
                       {!isBot && (
