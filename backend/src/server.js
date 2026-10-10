@@ -21,15 +21,26 @@ const { sendAdminAlert } = require('./controllers/leadsController');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+const allowedOrigins = [
+  'https://app.dreamexprop.com',
+  'https://www.dreamexprop.com',
+  'https://dreamexprop.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+
+// Vercel appends a random suffix to project domains (e.g. dreamex-product-bot-zkml.vercel.app),
+// so match any preview/prod deployment of this project instead of hardcoding one URL.
+const vercelPreviewPattern = /^https:\/\/dreamex-product-bot(-[a-z0-9-]+)?\.vercel\.app$/;
+
 const corsOptions = {
-  origin: [
-    'https://app.dreamexprop.com',
-    'https://www.dreamexprop.com',
-    'https://dreamexprop.com',
-    'https://dreamex-product-bot.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173',
-  ],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || vercelPreviewPattern.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Not allowed by CORS: ${origin}`));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-azmarq-secret', 'x-n8n-flow-webhook-auth'],
