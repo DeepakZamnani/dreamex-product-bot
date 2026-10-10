@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Send, ExternalLink } from 'lucide-react';
+import { Send, ExternalLink, List, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://dreamex-product-bot-zkml.vercel.app';
@@ -109,6 +109,47 @@ const parseButtonTags = (text: string): { text: string; buttons: ChatButton[] } 
   return { text: cleaned, buttons };
 };
 
+interface ListMenu {
+  title: string;
+  rows: ChatButton[];
+}
+
+// WhatsApp collapses 4+ options into a single "Select" list instead of stacking them
+const QUICK_REPLY_MAX = 3;
+const LIST_ROW_MAX_LEN = 24;
+const LIST_ROW_MAX = 10;
+const LIST_HEADER_REGEX = /^[*_]*\[([^\[\]]{1,24})\][*_]*$/;
+
+// Detects a "[Section]" header followed by option lines (e.g. "[Explore]\n1 BHK\n2 BHK\nOr just type")
+// and splits the text into body / list rows / footer so it can render as a WhatsApp list message
+const parseListBlock = (text: string): { text: string; footer: string; list: ListMenu | null } => {
+  const lines = text.split('\n').map(l => l.trim());
+  const headerIdx = lines.findIndex(l => {
+    const m = l.match(LIST_HEADER_REGEX);
+    return !!m && !/^(BUTTON|IMAGE)\s*:/i.test(m[1]);
+  });
+  if (headerIdx === -1) return { text, footer: '', list: null };
+
+  const title = lines[headerIdx].match(LIST_HEADER_REGEX)![1].trim();
+  const rows: ChatButton[] = [];
+  let i = headerIdx + 1;
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    const rowTitle = line.replace(/^[-•*]\s*/, '').replace(/[*_]/g, '').trim();
+    if (!rowTitle || rowTitle.length > LIST_ROW_MAX_LEN || /^or\b/i.test(rowTitle) || /[?.!:]$/.test(rowTitle)) break;
+    if (rows.length >= LIST_ROW_MAX) break;
+    rows.push({ id: `row_${rows.length}`, title: rowTitle });
+  }
+  if (rows.length < 2) return { text, footer: '', list: null };
+
+  return {
+    text: lines.slice(0, headerIdx).join('\n').trim(),
+    footer: lines.slice(i).filter(Boolean).join('\n'),
+    list: { title, rows },
+  };
+};
+
 const MarkdownLink: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = ({ href, children }) => (
   <a href={href} target="_blank" rel="noopener noreferrer" style={s.waMdLink}>{children}</a>
 );
@@ -148,6 +189,8 @@ const App: React.FC = () => {
   const [input, setInput]         = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [listSheet, setListSheet]   = useState<ListMenu | null>(null);
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
   const messagesEndRef    = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
@@ -308,6 +351,20 @@ const App: React.FC = () => {
     doSend(title);
   };
 
+  const openListSheet = (menu: ListMenu) => {
+    setSelectedRow(null);
+    setListSheet(menu);
+  };
+
+  const closeListSheet = () => setListSheet(null);
+
+  const sendListSelection = () => {
+    const row = listSheet?.rows.find(r => r.id === selectedRow);
+    if (!row) return;
+    closeListSheet();
+    doSend(row.title);
+  };
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
@@ -361,8 +418,16 @@ const App: React.FC = () => {
             ...(isBot ? s.waBubbleBot : s.waBubbleUser),
             borderRadius: bubbleRadius,
           };
-          const { text: displayText, buttons: tagButtons } = parseButtonTags(msg.message || '');
+          const { text: tagStrippedText, buttons: tagButtons } = parseButtonTags(msg.message || '');
+          const parsedList = isBot ? parseListBlock(tagStrippedText) : { text: tagStrippedText, footer: '', list: null };
+          const displayText = parsedList.text;
           const allButtons = [...(msg.buttons || []), ...tagButtons];
+          const replyButtons = allButtons.filter(b => !b.url);
+          const linkButtons  = allButtons.filter(b => b.url);
+          // 4+ quick replies (or an explicit "[Section]" block) become one WhatsApp-style list
+          const listMenu: ListMenu | null = parsedList.list
+            ?? (replyButtons.length > QUICK_REPLY_MAX ? { title: 'Options', rows: replyButtons } : null);
+          const chipButtons = listMenu && !parsedList.list ? linkButtons : allButtons;
           const linkUrl = displayText ? extractFirstUrl(displayText) : null;
           const ctaBar = linkUrl && (
             <a
@@ -402,6 +467,7 @@ const App: React.FC = () => {
                     <div style={s.waBubbleText}>
                       <ReactMarkdown components={markdownComponents}>{linkify(displayText)}</ReactMarkdown>
                     </div>
+                    {parsedList.footer && <div style={s.waBubbleFooter}>{parsedList.footer}</div>}
                     <div style={s.waTimeTick}>
                       <span style={s.waBubbleTime}>{msg.time}</span>
                       {!isBot && (
@@ -417,9 +483,21 @@ const App: React.FC = () => {
               </div>
 
               {/* Interactive button chips below bot bubble — quick replies send text, link buttons open a URL */}
-              {isBot && allButtons.length > 0 && (
+              {isBot && listMenu && (
+                <div style={s.listBtnWrap}>
+                  <button
+                    onClick={() => openListSheet(listMenu)}
+                    disabled={isLoading}
+                    style={s.listBtn}
+                  >
+                    <List size={17} />
+                    Select
+                  </button>
+                </div>
+              )}
+              {isBot && chipButtons.length > 0 && (
                 <div style={s.btnChipsWrap}>
-                  {allButtons.map((btn, bi) => (
+                  {chipButtons.map((btn, bi) => (
                     btn.url ? (
                       <a
                         key={bi}
@@ -458,6 +536,48 @@ const App: React.FC = () => {
 
         <div ref={messagesEndRef} style={{ height: 0 }} />
       </div>
+
+      {/* WhatsApp-style list picker (bottom sheet) */}
+      {listSheet && (
+        <div style={s.sheetBackdrop} onClick={closeListSheet}>
+          <div style={s.sheet} onClick={e => e.stopPropagation()} role="dialog" aria-label={listSheet.title}>
+            <div style={s.sheetHeader}>
+              <button onClick={closeListSheet} style={s.sheetClose} aria-label="Close">
+                <X size={22} />
+              </button>
+              <span style={s.sheetTitle}>Select</span>
+            </div>
+            <div style={s.sheetSection}>{listSheet.title}</div>
+            <div style={s.sheetRows}>
+              {listSheet.rows.map(row => (
+                <button
+                  key={row.id}
+                  onClick={() => setSelectedRow(row.id)}
+                  style={s.sheetRow}
+                >
+                  <span style={s.sheetRowText}>{row.title}</span>
+                  <span style={{ ...s.sheetRadio, borderColor: selectedRow === row.id ? '#008069' : '#8696a0' }}>
+                    {selectedRow === row.id && <span style={s.sheetRadioDot} />}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div style={s.sheetFooter}>
+              <button
+                onClick={sendListSelection}
+                disabled={!selectedRow || isLoading}
+                style={{
+                  ...s.sheetSend,
+                  background: selectedRow ? '#008069' : '#b2bec3',
+                  cursor: selectedRow && !isLoading ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* WA Input */}
       <div style={s.waInputArea}>
@@ -558,6 +678,7 @@ const s: Record<string, React.CSSProperties> = {
 
   // WhatsApp chat panel — light theme
   chatPanel: {
+    position: 'relative',
     display: 'flex', flexDirection: 'column',
     width: '100%', height: '100%',
     background: '#efeae2',
@@ -701,6 +822,90 @@ const s: Record<string, React.CSSProperties> = {
   },
   btnChipIcon: {
     flexShrink: 0,
+  },
+  waBubbleFooter: {
+    fontSize: 13, lineHeight: 1.4, color: '#667781', marginTop: 2,
+  },
+  // "Select" button attached under the bubble, like a WhatsApp list message
+  listBtnWrap: {
+    display: 'flex', justifyContent: 'flex-start',
+    marginTop: 3,
+  },
+  listBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    background: '#ffffff',
+    border: 'none',
+    borderRadius: 8,
+    color: '#00a884',
+    fontSize: 14, fontWeight: 600,
+    padding: '10px 12px',
+    minWidth: 160, maxWidth: '78%',
+    cursor: 'pointer',
+    fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+    boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
+  },
+  sheetBackdrop: {
+    position: 'absolute', inset: 0, zIndex: 20,
+    background: 'rgba(11,20,26,0.5)',
+    display: 'flex', alignItems: 'flex-end',
+  },
+  sheet: {
+    width: '100%', maxHeight: '80%',
+    background: '#ffffff',
+    borderRadius: '16px 16px 0 0',
+    display: 'flex', flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  sheetHeader: {
+    display: 'flex', alignItems: 'center', gap: 12,
+    padding: '14px 16px 6px',
+  },
+  sheetClose: {
+    background: 'none', border: 'none', padding: 4, cursor: 'pointer',
+    color: '#54656f', display: 'flex',
+  },
+  sheetTitle: {
+    fontSize: 16, fontWeight: 500, color: '#111b21',
+  },
+  sheetSection: {
+    padding: '10px 20px 6px',
+    fontSize: 14, fontWeight: 500, color: '#00a884',
+  },
+  sheetRows: {
+    overflowY: 'auto', flex: 1,
+  },
+  sheetRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    width: '100%',
+    background: 'none', border: 'none',
+    borderBottom: '1px solid #f0f2f5',
+    padding: '14px 20px',
+    cursor: 'pointer', textAlign: 'left',
+    fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  },
+  sheetRowText: {
+    fontSize: 16, color: '#111b21',
+  },
+  sheetRadio: {
+    width: 20, height: 20, borderRadius: '50%',
+    border: '2px solid #8696a0',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  sheetRadioDot: {
+    width: 10, height: 10, borderRadius: '50%', background: '#008069',
+  },
+  sheetFooter: {
+    padding: '12px 16px',
+    paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+    borderTop: '1px solid #f0f2f5',
+    display: 'flex', justifyContent: 'center',
+  },
+  sheetSend: {
+    border: 'none', borderRadius: 24,
+    color: '#fff', fontSize: 15, fontWeight: 600,
+    padding: '11px 40px',
+    fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
   },
 };
 
