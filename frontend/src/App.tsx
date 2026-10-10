@@ -111,6 +111,7 @@ const parseButtonTags = (text: string): { text: string; buttons: ChatButton[] } 
 
 interface ListMenu {
   title: string;
+  buttonLabel: string;
   rows: ChatButton[];
 }
 
@@ -118,7 +119,9 @@ interface ListMenu {
 const QUICK_REPLY_MAX = 3;
 const LIST_ROW_MAX_LEN = 24;
 const LIST_ROW_MAX = 10;
-const LIST_HEADER_REGEX = /^[*_]*\[([^\[\]]{1,24})\][*_]*$/;
+// Matches "[Explore]" and "[List Button: What matters]" (the latter also names the Select button)
+const LIST_HEADER_REGEX = /^[*_]*\[\s*(List Button\s*:\s*)?([^\[\]]{1,40}?)\s*\][*_]*$/i;
+const BUTTON_LABEL_MAX_LEN = 20;
 
 // Detects a "[Section]" header followed by option lines (e.g. "[Explore]\n1 BHK\n2 BHK\nOr just type")
 // and splits the text into body / list rows / footer so it can render as a WhatsApp list message
@@ -126,11 +129,13 @@ const parseListBlock = (text: string): { text: string; footer: string; list: Lis
   const lines = text.split('\n').map(l => l.trim());
   const headerIdx = lines.findIndex(l => {
     const m = l.match(LIST_HEADER_REGEX);
-    return !!m && !/^(BUTTON|IMAGE)\s*:/i.test(m[1]);
+    return !!m && !/^(BUTTON|IMAGE)\s*:/i.test(m[2]);
   });
   if (headerIdx === -1) return { text, footer: '', list: null };
 
-  const title = lines[headerIdx].match(LIST_HEADER_REGEX)![1].trim();
+  const headerMatch = lines[headerIdx].match(LIST_HEADER_REGEX)!;
+  const title = headerMatch[2].trim();
+  const buttonLabel = headerMatch[1] ? title.slice(0, BUTTON_LABEL_MAX_LEN) : 'Select';
   const rows: ChatButton[] = [];
   let i = headerIdx + 1;
   for (; i < lines.length; i++) {
@@ -146,7 +151,7 @@ const parseListBlock = (text: string): { text: string; footer: string; list: Lis
   return {
     text: lines.slice(0, headerIdx).join('\n').trim(),
     footer: lines.slice(i).filter(Boolean).join('\n'),
-    list: { title, rows },
+    list: { title, buttonLabel, rows },
   };
 };
 
@@ -426,7 +431,7 @@ const App: React.FC = () => {
           const linkButtons  = allButtons.filter(b => b.url);
           // 4+ quick replies (or an explicit "[Section]" block) become one WhatsApp-style list
           const listMenu: ListMenu | null = parsedList.list
-            ?? (replyButtons.length > QUICK_REPLY_MAX ? { title: 'Options', rows: replyButtons } : null);
+            ?? (replyButtons.length > QUICK_REPLY_MAX ? { title: 'Options', buttonLabel: 'Select', rows: replyButtons } : null);
           const chipButtons = listMenu && !parsedList.list ? linkButtons : allButtons;
           const linkUrl = displayText ? extractFirstUrl(displayText) : null;
           const ctaBar = linkUrl && (
@@ -491,7 +496,7 @@ const App: React.FC = () => {
                     style={s.listBtn}
                   >
                     <List size={17} />
-                    Select
+                    {listMenu.buttonLabel}
                   </button>
                 </div>
               )}
